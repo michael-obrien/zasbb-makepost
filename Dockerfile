@@ -10,5 +10,6 @@ RUN npm install
 RUN npm build
 
 EXPOSE 10102
+ENV ZASBB_FUNCTION="Make Post"
 
 ENTRYPOINT ["npm", "start"]
