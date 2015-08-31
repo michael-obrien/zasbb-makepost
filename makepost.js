@@ -7,7 +7,17 @@ var seneca = require('seneca')();
 seneca.use('jsonfile-store',{folder:'./localdb'})
 
 seneca.listen(10102); //requests from Hapi REST
-seneca.client(10101); //requests to Directory Services
+//seneca.client(10101); //requests to Directory Services
+
+//discovery
+seneca.add({cmd:'config'}, function (msg, response) {
+  msg.data.forEach(function (item) {
+    if (item.name === 'Directory') {
+      seneca.client({host:item.address, port:10101});
+    }
+  })
+  response(null, msg.data);
+});
 
 seneca.add({role: "make",cmd: "post"}, function( msg, respond) {
 
