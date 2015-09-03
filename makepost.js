@@ -2,10 +2,6 @@
 
 var seneca = require('seneca')();
 
-//maybe remove this and add more seneca actions later to keep all the
-  //database access in 01_directory-service
-seneca.use('jsonfile-store',{folder:'./localdb'})
-
 seneca.listen(10102); //requests from Hapi REST
 //seneca.client(10101); //requests to Directory Services
 
@@ -39,13 +35,13 @@ seneca.add({role: "make",cmd: "post"}, function( msg, respond) {
 
   post.when = new Date().getTime();
 
-  //save the post.
-  post.save$(function(err,post){
+  seneca.act({role:"save", cmd:"post", msg: post}, function (err, response) {
     if (err) {
       respond(err);
     }
 
-    //now we need to update the containing thread.
+    post.id = response.id;
+
     var thread = seneca.make$('thread');
 
     if (msg.thread !== 'new') {
@@ -57,17 +53,12 @@ seneca.add({role: "make",cmd: "post"}, function( msg, respond) {
         thread = result.thread;
         thread.postids += ',' + post.id;
         thread.lastpostwhen = post.when;
-        thread.save$(function (err, response) {
-        if (err) {
-          respond(err);
-        }
-        //*******************************************
-        //don't forget to go update user postcount ..
-        //add later
-        console.log('UPDATED Thread:', response);
 
-
-        respond( null, response );
+        seneca.act({role:"save", cmd:"thread", msg: thread}, function (err, response) {
+          if (err) {
+            respond(err);
+          }
+          respond(null, response);
         });
       });
 
@@ -80,18 +71,13 @@ seneca.add({role: "make",cmd: "post"}, function( msg, respond) {
       thread.userid = thread.userid;
       thread.userscope = post.userscope;
       thread.parentid = msg.section;
-      thread.save$(function(err, thread) {
-        if (err) {
-          //handleme
-        }
-        //*******************************************
-        //don't forget to go update user postcount ..
-        //add later
-        console.log('Posted Thread Successfully:', thread);
 
-        respond( null, thread );
+      seneca.act({role:"save", cmd:"thread", msg: thread}, function (err, response) {
+        if (err) {
+          respond(err);
+        }
+        respond(null, response);
       });
     }
-
-  })
+  });
 });
